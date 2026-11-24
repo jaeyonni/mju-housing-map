@@ -8,12 +8,13 @@ const VIRIDIS_STOPS = [
   [1.0, [253, 231, 37]],  // #fde725
 ];
 
-// 환산월세: 싼 곳이 진하게 (밝은 연두 -> 짙은 포레스트 그린)
+// 환산월세: 비쌈(빨강) -> 중간(노랑) -> 저렴(초록)
 const RENT_INV_STOPS = [
-  [0.0, [244, 249, 233]],  // #f4f9e9 (비쌈)
-  [0.33, [165, 214, 167]], // #a5d6a7
-  [0.68, [46, 139, 87]],   // #2e8b57
-  [1.0, [11, 51, 32]],     // #0b3320 (가장 저렴)
+  [0.0, [215, 48, 39]],   // #d73027 (비쌈)
+  [0.28, [249, 115, 22]], // #f97316 (주황)
+  [0.55, [250, 204, 21]], // #facc15 (노랑)
+  [0.8, [74, 222, 128]],  // #4ade80 (연초록)
+  [1.0, [21, 128, 61]],   // #15803d (저렴 - 진한 초록)
 ];
 
 function lerpStops(stops, t) {
@@ -59,7 +60,7 @@ export function getRoadRentColor(conv) {
 
 export const LEGEND_GRADIENTS = {
   score: 'linear-gradient(to right, #440154 0%, #3b528b 25%, #21918c 50%, #5ec962 75%, #fde725 100%)',
-  rent: 'linear-gradient(to right, #f4f9e9 0%, #a5d6a7 33%, #2e8b57 68%, #0b3320 100%)',
+  rent: 'linear-gradient(to right, #d73027 0%, #f97316 28%, #facc15 55%, #4ade80 80%, #15803d 100%)',
 };
 
 export function formatDistance(meters) {

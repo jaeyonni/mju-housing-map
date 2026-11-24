@@ -4,8 +4,8 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=8';
-import { MapRenderer } from './mapRenderer.js?v=8';
+} from './colorScale.js?v=9';
+import { MapRenderer } from './mapRenderer.js?v=9';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -496,7 +496,7 @@ class HousingApp {
         this.dom.legendMaxLabel.textContent = '높음';
       }
     } else {
-      this.dom.legendTitle.textContent = '환산월세 (싼 곳이 진하게)';
+      this.dom.legendTitle.textContent = '환산월세 (비쌈→저렴)';
       this.dom.legendBar.style.background = LEGEND_GRADIENTS.rent;
       const hasRent = this.sortedCandidates.some((b) => b.pr != null);
       if (hasRent) {
