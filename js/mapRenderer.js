@@ -1,17 +1,79 @@
-import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=10';
+import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=13';
 
 const MJU_GATE = [37.22677, 127.18804];
 const RADIUS_METERS = [800, 1600, 2400, 3200];
 
-const ZONE_PALETTE = [
-  '#e0f2fe',
-  '#dcfce7',
-  '#fef9c3',
-  '#f3e8ff',
-  '#ffe4e6',
-  '#ffedd5',
-  '#e2e8f0',
+const ZONE_STYLE_MAP = {
+  YB_CAFE: '#2563eb',
+  YB_STATION: '#059669',
+  YB_NAKEUN: '#7c3aed',
+  YB_WEST: '#0284c7',
+  ND_CAMPUS: '#ea580c',
+  ND_MYEONGJI: '#db2777',
+  ND_SOUTH: '#475569',
+};
+
+const ZONE_FALLBACK_COLORS = [
+  '#2563eb',
+  '#059669',
+  '#7c3aed',
+  '#0284c7',
+  '#ea580c',
+  '#db2777',
+  '#475569',
 ];
+
+function ringAreaSigned(ring) {
+  let a = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+  }
+  return a * 0.5;
+}
+
+function ringCentroid(ring) {
+  if (!ring || ring.length === 0) return [0, 0];
+  let cx = 0;
+  let cy = 0;
+  let a6 = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+    const cross = ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    cx += (ring[j][0] + ring[i][0]) * cross;
+    cy += (ring[j][1] + ring[i][1]) * cross;
+    a6 += cross;
+  }
+  a6 *= 3;
+  if (Math.abs(a6) < 1e-12) {
+    let sx = 0;
+    let sy = 0;
+    for (const p of ring) {
+      sx += p[0];
+      sy += p[1];
+    }
+    return [sx / ring.length, sy / ring.length];
+  }
+  return [cx / a6, cy / a6];
+}
+
+function getFeatureVisualCentroid(geom) {
+  if (geom.type === 'Polygon') {
+    return ringCentroid(geom.coordinates[0]);
+  }
+  if (geom.type === 'MultiPolygon') {
+    let bestRing = geom.coordinates[0][0];
+    let bestArea = -1;
+    for (const poly of geom.coordinates) {
+      const r = poly[0];
+      const a = Math.abs(ringAreaSigned(r));
+      if (a > bestArea) {
+        bestArea = a;
+        bestRing = r;
+      }
+    }
+    return ringCentroid(bestRing);
+  }
+  return [0, 0];
+}
 
 function pointInRing(x, y, ring) {
   let inside = false;
@@ -383,20 +445,68 @@ export class MapRenderer {
     const inView = (lon, lat) =>
       lon >= minLon && lon <= maxLon && lat >= minLat && lat <= maxLat;
 
-    // 1. 선택 레이어: 7개 생활권
+    // 1. 선택 레이어: 7개 생활권 (선명한 영역 채우기 + 흰 외곽/컬러 실선 경계)
+    const zoneBadges = [];
+    const zoneReservedBoxes = [];
     if (this.state.showZones && this.microZones) {
+      // 현재 후보 기준 권역별 라이브 평균 점수 집계
+      const zoneAgg = new Map();
+      for (const b of this.sortedCandidates) {
+        let agg = zoneAgg.get(b.z);
+        if (!agg) {
+          agg = { sum: 0, cnt: 0 };
+          zoneAgg.set(b.z, agg);
+        }
+        agg.sum += b.currentScore;
+        agg.cnt += 1;
+      }
+
       ctx.save();
       this.microZones.features.forEach((ft, idx) => {
+        const prp = ft.properties;
+        const zColor = ZONE_STYLE_MAP[prp.ZONE_ID] || ZONE_FALLBACK_COLORS[idx % ZONE_FALLBACK_COLORS.length];
+
         ctx.beginPath();
         this._drawGeoFeaturePoly(ctx, ft.geometry);
-        ctx.fillStyle = ZONE_PALETTE[idx % ZONE_PALETTE.length];
-        ctx.globalAlpha = 0.22;
+        ctx.fillStyle = zColor;
+        ctx.globalAlpha = 0.20;
         ctx.fill();
-        ctx.globalAlpha = 0.8;
-        ctx.lineWidth = 1.25;
-        ctx.setLineDash([4, 3]);
-        ctx.strokeStyle = '#475569';
+
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = 0.88;
+        ctx.lineWidth = 4.2;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
         ctx.stroke();
+
+        ctx.globalAlpha = 0.92;
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = zColor;
+        ctx.stroke();
+
+        // 배지 위치 및 크기 미리 계산 (건물 라벨과 겹침 방지)
+        const [clon, clat] = getFeatureVisualCentroid(ft.geometry);
+        const pt = this._toPt(clon, clat);
+        const titleTxt = prp.ZONE_SHORT;
+        const agg = zoneAgg.get(prp.ZONE_ID);
+        const avgSc = agg && agg.cnt > 0 ? agg.sum / agg.cnt : prp.SC_TOT;
+        const avgPr = prp.PRIC_EST != null ? `약 ${Math.round(prp.PRIC_EST)}만` : '';
+        const subTxt = avgPr ? `평균 ${avgSc.toFixed(2)}점 · ${avgPr}` : `평균 ${avgSc.toFixed(2)}점`;
+
+        ctx.font = '700 12px Pretendard, sans-serif';
+        const w1 = ctx.measureText(titleTxt).width + 14; // 점(6px) + 간격 포함
+        ctx.font = '600 10.5px Pretendard, sans-serif';
+        const w2 = ctx.measureText(subTxt).width;
+        const boxW = Math.ceil(Math.max(w1, w2) + 20);
+        const boxH = 38;
+
+        zoneBadges.push({ pt, color: zColor, titleTxt, subTxt, boxW, boxH });
+        zoneReservedBoxes.push({
+          x1: pt.x - boxW / 2 - 4,
+          y1: pt.y - boxH / 2 - 4,
+          x2: pt.x + boxW / 2 + 4,
+          y2: pt.y + boxH / 2 + 4,
+        });
       });
       ctx.restore();
     }
@@ -611,45 +721,84 @@ export class MapRenderer {
       ctx.restore();
     }
 
-    // 9. 생활권 라벨 (생활권 레이어 켠 경우)
-    if (this.state.showZones && this.microZones) {
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font = '700 11px Pretendard, sans-serif';
-      for (const ft of this.microZones.features) {
-        const ring = ft.geometry.type === 'Polygon' ? ft.geometry.coordinates[0] : ft.geometry.coordinates[0][0];
-        let slon = 0;
-        let slat = 0;
-        for (const c of ring) {
-          slon += c[0];
-          slat += c[1];
-        }
-        const pt = this._toPt(slon / ring.length, slat / ring.length);
-        const txt = ft.properties.ZONE_SHORT;
-        ctx.lineWidth = 3.5;
-        ctx.strokeStyle = 'rgba(255,255,255,0.92)';
-        ctx.strokeText(txt, pt.x, pt.y);
-        ctx.fillStyle = '#1e293b';
-        ctx.fillText(txt, pt.x, pt.y);
-      }
-      ctx.restore();
-    }
-
-    // 10. 건물 위 글자 (충돌 회피 그리디 배치)
+    // 9. 건물 위 글자 (충돌 회피 그리디 배치, 생활권 배지 영역 회피)
     if (this.state.labelMode !== 'none') {
-      this._drawSmartLabels(ctx, viewW, viewH, zoom, inView, padX, padY);
+      this._drawSmartLabels(ctx, viewW, viewH, zoom, inView, padX, padY, zoneReservedBoxes);
     }
 
-    // 11. 명지대 정문 빨간 별 + 0.8/1.6/2.4/3.2km 동심원 반경
+    // 10. 명지대 정문 빨간 별 + 0.8/1.6/2.4/3.2km 동심원 반경
     if (this.state.showCampusRadius) {
       this._drawCampusCircles(ctx);
     }
+
+    // 11. 7개 생활권 알약 배지 (최상단)
+    if (zoneBadges.length > 0) {
+      this._drawZoneBadges(ctx, zoneBadges);
+    }
   }
 
-  _drawSmartLabels(ctx, viewW, viewH, zoom, inView, bufPadX = 0, bufPadY = 0) {
+  _drawZoneBadges(ctx, badges) {
+    for (const item of badges) {
+      const { pt, color, titleTxt, subTxt, boxW, boxH } = item;
+      const x = Math.round(pt.x - boxW / 2);
+      const y = Math.round(pt.y - boxH / 2);
+      const r = 10;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(15, 23, 42, 0.18)';
+      ctx.shadowBlur = 6;
+      ctx.shadowOffsetY = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + boxW - r, y);
+      ctx.quadraticCurveTo(x + boxW, y, x + boxW, y + r);
+      ctx.lineTo(x + boxW, y + boxH - r);
+      ctx.quadraticCurveTo(x + boxW, y + boxH, x + boxW - r, y + boxH);
+      ctx.lineTo(x + r, y + boxH);
+      ctx.quadraticCurveTo(x, y + boxH, x, y + boxH - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.fill();
+
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = color;
+      ctx.stroke();
+
+      // 상단: 컬러 도트 + 권역명
+      ctx.font = '700 12px Pretendard, sans-serif';
+      const titleW = ctx.measureText(titleTxt).width;
+      const dotR = 3.5;
+      const dotGap = 6;
+      const line1StartX = pt.x - (dotR * 2 + dotGap + titleW) / 2;
+      const line1Y = y + 12.5;
+
+      ctx.beginPath();
+      ctx.arc(line1StartX + dotR, line1Y, dotR, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(titleTxt, line1StartX + dotR * 2 + dotGap, line1Y + 0.5);
+
+      // 하단: 라이브 평균 점수 · 추정 월세
+      ctx.font = '600 10.5px Pretendard, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#475569';
+      ctx.fillText(subTxt, pt.x, y + 27.5);
+      ctx.restore();
+    }
+  }
+
+  _drawSmartLabels(ctx, viewW, viewH, zoom, inView, bufPadX = 0, bufPadY = 0, reservedBoxes = []) {
     const mode = this.state.labelMode;
-    const placedBoxes = [];
+    const placedBoxes = [...reservedBoxes];
 
     // 줌 레벨별 간격 조절: 초기 화면에서는 ~50개 핵심 대표 건물, 확대 시 촘촘하게
     const padX = zoom >= 16.5 ? 4 : zoom >= 15 ? 8 : 13;
