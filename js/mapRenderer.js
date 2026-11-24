@@ -1,4 +1,4 @@
-import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=3';
+import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=4';
 
 const MJU_GATE = [37.22677, 127.18804];
 const RADIUS_METERS = [800, 1600, 2400, 3200];
@@ -71,23 +71,32 @@ class HousingCanvasLayer extends L.Layer {
     super();
     this.renderer = renderer;
     this.canvas = null;
+    this._padX = 0;
+    this._padY = 0;
+    this._drawnZoom = null;
+    this._drawnTopLeftLatLng = null;
   }
 
   onAdd(map) {
     this._map = map;
     this.canvas = L.DomUtil.create('canvas', 'leaflet-zoom-animated housing-canvas-layer');
     this.canvas.style.pointerEvents = 'none';
+    this.canvas.style.transformOrigin = '0 0';
     const pane = map.getPane('overlayPane');
     pane.appendChild(this.canvas);
 
+    map.on('zoomanim', this._onZoomAnim, this);
+    map.on('zoom', this._onZoom, this);
+    map.on('move', this._onMove, this);
     map.on('moveend zoomend viewreset resize', this._reset, this);
-    map.on('move', this._reset, this);
     this._reset();
   }
 
   onRemove(map) {
+    map.off('zoomanim', this._onZoomAnim, this);
+    map.off('zoom', this._onZoom, this);
+    map.off('move', this._onMove, this);
     map.off('moveend zoomend viewreset resize', this._reset, this);
-    map.off('move', this._reset, this);
     if (this.canvas && this.canvas.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas);
     }
@@ -95,33 +104,82 @@ class HousingCanvasLayer extends L.Layer {
     this._map = null;
   }
 
+  _updateTransform(center, zoom) {
+    if (!this._map || !this.canvas || !this._drawnTopLeftLatLng || this._drawnZoom == null) return;
+    const scale = this._map.getZoomScale(zoom, this._drawnZoom);
+    const offset = this._map._latLngToNewLayerPoint(this._drawnTopLeftLatLng, zoom, center);
+    L.DomUtil.setTransform(this.canvas, offset, scale);
+  }
+
+  _onZoomAnim(e) {
+    this._updateTransform(e.center, e.zoom);
+  }
+
+  _onZoom() {
+    if (!this._map) return;
+    this._updateTransform(this._map.getCenter(), this._map.getZoom());
+  }
+
+  _onMove() {
+    if (!this._map || !this.canvas || this._drawnZoom == null || !this._drawnTopLeftLatLng) return;
+    if (this._map._animatingZoom) return;
+    const curZoom = this._map.getZoom();
+    if (curZoom !== this._drawnZoom) {
+      this._updateTransform(this._map.getCenter(), curZoom);
+      return;
+    }
+    // 오버스캔 여유폭(35%)의 78% 이상 드래그했을 때만 재렌더링, 그 안에서는 GPU 패닝 유지
+    const curTopLeft = this._map.containerPointToLayerPoint([0, 0]);
+    const drawnOrigin = this._map.latLngToLayerPoint(this._drawnTopLeftLatLng);
+    const driftX = Math.abs(curTopLeft.x - this._padX - drawnOrigin.x);
+    const driftY = Math.abs(curTopLeft.y - this._padY - drawnOrigin.y);
+    if (driftX > this._padX * 0.78 || driftY > this._padY * 0.78) {
+      this._reset();
+    }
+  }
+
   _reset() {
     if (!this._map || !this.canvas) return;
     const size = this._map.getSize();
-    const topLeft = this._map.containerPointToLayerPoint([0, 0]);
-    L.DomUtil.setPosition(this.canvas, topLeft);
+    const padX = Math.round(size.x * 0.35);
+    const padY = Math.round(size.y * 0.35);
+    const canvasW = Math.max(1, size.x + padX * 2);
+    const canvasH = Math.max(1, size.y + padY * 2);
+
+    this._padX = padX;
+    this._padY = padY;
+    this._drawnZoom = this._map.getZoom();
+    this._drawnTopLeftLatLng = this._map.containerPointToLatLng([-padX, -padY]);
+
+    const topLeft = this._map.containerPointToLayerPoint([-padX, -padY]);
+    L.DomUtil.setTransform(this.canvas, topLeft, 1);
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = Math.max(1, size.x);
-    const h = Math.max(1, size.y);
-    if (this.canvas.width !== w * dpr || this.canvas.height !== h * dpr) {
-      this.canvas.width = w * dpr;
-      this.canvas.height = h * dpr;
-      this.canvas.style.width = `${w}px`;
-      this.canvas.style.height = `${h}px`;
+    if (this.canvas.width !== canvasW * dpr || this.canvas.height !== canvasH * dpr) {
+      this.canvas.width = canvasW * dpr;
+      this.canvas.height = canvasH * dpr;
+      this.canvas.style.width = `${canvasW}px`;
+      this.canvas.style.height = `${canvasH}px`;
     }
     this.redraw();
   }
 
   redraw() {
     if (!this._map || !this.canvas) return;
+    if (this._drawnZoom == null || this._drawnZoom !== this._map.getZoom()) {
+      this._reset();
+      return;
+    }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const size = this._map.getSize();
+    const canvasW = Math.max(1, size.x + this._padX * 2);
+    const canvasH = Math.max(1, size.y + this._padY * 2);
     const ctx = this.canvas.getContext('2d');
     ctx.save();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size.x, size.y);
-    this.renderer.drawFrame(ctx, size.x, size.y);
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    ctx.translate(this._padX, this._padY);
+    this.renderer.drawFrame(ctx, size.x, size.y, this._padX, this._padY);
     ctx.restore();
   }
 }
@@ -288,10 +346,10 @@ export class MapRenderer {
     }
   }
 
-  drawFrame(ctx, viewW, viewH) {
+  drawFrame(ctx, viewW, viewH, padX = 0, padY = 0) {
     if (!this.context) return;
     const zoom = this.map.getZoom();
-    const bds = this.map.getBounds().pad(0.08);
+    const bds = this.map.getBounds().pad(0.45);
     const minLon = bds.getWest();
     const maxLon = bds.getEast();
     const minLat = bds.getSouth();
@@ -551,7 +609,7 @@ export class MapRenderer {
 
     // 10. 건물 위 글자 (충돌 회피 그리디 배치)
     if (this.state.labelMode !== 'none') {
-      this._drawSmartLabels(ctx, viewW, viewH, zoom, inView);
+      this._drawSmartLabels(ctx, viewW, viewH, zoom, inView, padX, padY);
     }
 
     // 11. 명지대 정문 빨간 별 + 0.8/1.6/2.4/3.2km 동심원 반경
@@ -560,14 +618,14 @@ export class MapRenderer {
     }
   }
 
-  _drawSmartLabels(ctx, viewW, viewH, zoom, inView) {
+  _drawSmartLabels(ctx, viewW, viewH, zoom, inView, bufPadX = 0, bufPadY = 0) {
     const mode = this.state.labelMode;
     const placedBoxes = [];
 
     // 줌 레벨별 간격 조절: 초기 화면에서는 ~50개 핵심 대표 건물, 확대 시 촘촘하게
     const padX = zoom >= 16.5 ? 4 : zoom >= 15 ? 8 : 13;
     const padY = zoom >= 16.5 ? 2 : zoom >= 15 ? 4 : 6;
-    const maxLabels = zoom >= 16.5 ? 220 : zoom >= 15 ? 110 : 58;
+    const maxLabels = zoom >= 16.5 ? 420 : zoom >= 15 ? 200 : 100;
 
     // 명지대 정문 주변 라벨 겹침 회피를 위해 정문 좌표 주변에 작은 예약 박스 확보
     if (this.state.showCampusRadius) {
@@ -595,7 +653,14 @@ export class MapRenderer {
       if (count >= maxLabels) break;
       if (!inView(b.c[0], b.c[1])) continue;
       const pt = this._toPt(b.c[0], b.c[1]);
-      if (pt.x < 30 || pt.x > viewW - 30 || pt.y < 20 || pt.y > viewH - 20) continue;
+      if (
+        pt.x < -bufPadX + 28 ||
+        pt.x > viewW + bufPadX - 28 ||
+        pt.y < -bufPadY + 18 ||
+        pt.y > viewH + bufPadY - 18
+      ) {
+        continue;
+      }
 
       const scoreTxt = b.currentScore.toFixed(1);
       const rentTxt = b.pr != null ? `${Math.round(b.pr)}만` : '';

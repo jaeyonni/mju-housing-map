@@ -551,6 +551,11 @@ body {
   filter: saturate(0.85);
 }
 
+.housing-canvas-layer {
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
 /* 우상단 지도 도구바 */
 .map-toolbar {
   position: absolute;
