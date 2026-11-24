@@ -1,4 +1,4 @@
-import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=5';
+import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=6';
 
 const MJU_GATE = [37.22677, 127.18804];
 const RADIUS_METERS = [800, 1600, 2400, 3200];
@@ -425,16 +425,20 @@ export class MapRenderer {
       ctx.restore();
     }
 
-    // 3. 행정동 경계 (역북동·남동 점선)
+    // 3. 행정동 경계 (역북동·남동 흰색 외곽 + 진한 슬레이트 실선)
     if (this.context.admin) {
       ctx.save();
       ctx.beginPath();
       for (const ft of this.context.admin.features) {
         this._drawGeoFeaturePoly(ctx, ft.geometry);
       }
-      ctx.lineWidth = 1.35;
-      ctx.setLineDash([5, 4]);
-      ctx.strokeStyle = '#475569';
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.lineWidth = 4.2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.86)';
+      ctx.stroke();
+      ctx.lineWidth = 2.1;
+      ctx.strokeStyle = '#1e293b';
       ctx.stroke();
       ctx.restore();
     }
@@ -737,9 +741,11 @@ export class MapRenderer {
 
       ctx.beginPath();
       ctx.arc(centerPt.x, centerPt.y, pxRadius, 0, Math.PI * 2);
-      ctx.lineWidth = 1.05;
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = '#4b5563';
+      ctx.lineWidth = 3.2;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+      ctx.stroke();
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = 'rgba(220, 38, 38, 0.72)';
       ctx.stroke();
 
       // 우상단(약 45도) 직선거리 라벨
@@ -748,15 +754,14 @@ export class MapRenderer {
       const labelTxt = `직선 ${(rMeters / 1000).toFixed(1)}km`;
 
       ctx.save();
-      ctx.setLineDash([]);
-      ctx.font = '500 10.5px Pretendard, sans-serif';
+      ctx.font = '700 11px Pretendard, sans-serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-      ctx.strokeText(labelTxt, lpt.x + 3, lpt.y);
-      ctx.fillStyle = '#4b5563';
-      ctx.fillText(labelTxt, lpt.x + 3, lpt.y);
+      ctx.lineWidth = 3.6;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.94)';
+      ctx.strokeText(labelTxt, lpt.x + 4, lpt.y);
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillText(labelTxt, lpt.x + 4, lpt.y);
       ctx.restore();
     }
 
