@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="./css/style.css?v=10" />
+  <link rel="stylesheet" href="./css/style.css?v=11" />
 </head>
 <body>
   <div class="app-shell">
@@ -30,7 +30,8 @@
           <h1 class="sidebar-title">자취 입지 건물 추천</h1>
           <button id="sidebar-close-btn" class="sidebar-close-btn" type="button" aria-label="패널 닫기">×</button>
         </div>
-        <p class="sidebar-subtitle">요소별 비중을 만지면 건물 단위로 순위가 바뀌어요 (역북동·남동)</p>
+        <p class="sidebar-subtitle">용인시 처인구 역북동·남동 · GIS 3조</p>
+        <p class="sidebar-team">양상훈 · 이연재 · 이민영 · 이재영 · 신태선</p>
         <div class="status-meta-row">
           <span id="candidate-count-badge" class="candidate-badge">후보 1,910 / 1,910동</span>
           <span id="preset-note-text" class="preset-note-inline">전체 설문 평균 (n=70)</span>
@@ -69,8 +70,8 @@
           <button class="seg-btn" type="button" data-colormode="rent">환산월세</button>
         </div>
 
-        <div class="sub-label">건물 위 글자</div>
-        <div class="btn-group btn-group-4" role="group" aria-label="건물 위 글자 표시">
+        <div class="sub-label">지도 라벨</div>
+        <div class="btn-group btn-group-4" role="group" aria-label="지도 라벨 표시">
           <button class="seg-btn" type="button" data-labelmode="none">없음</button>
           <button class="seg-btn" type="button" data-labelmode="score">점수</button>
           <button class="seg-btn" type="button" data-labelmode="rent">월세</button>
