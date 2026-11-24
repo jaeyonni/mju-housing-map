@@ -4,8 +4,8 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=6';
-import { MapRenderer } from './mapRenderer.js?v=6';
+} from './colorScale.js?v=7';
+import { MapRenderer } from './mapRenderer.js?v=7';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -261,17 +261,6 @@ class HousingApp {
           el.classList.toggle('active', el === btn)
         );
         this.renderer.updateViewState({ labelMode: this.state.labelMode });
-      });
-    });
-
-    // 명지대 정문·반경
-    document.querySelectorAll('[data-radius]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        this.state.showCampusRadius = btn.dataset.radius === 'on';
-        document.querySelectorAll('[data-radius]').forEach((el) =>
-          el.classList.toggle('active', el === btn)
-        );
-        this.renderer.updateViewState({ showCampusRadius: this.state.showCampusRadius });
       });
     });
 
