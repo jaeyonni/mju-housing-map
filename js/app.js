@@ -211,11 +211,20 @@ class HousingApp {
       const match = !this.state.isCustomWeight && btn.dataset.preset === this.state.presetKey;
       btn.classList.toggle('active', match);
     });
+    const PRESET_DISPLAY_NOTES = {
+      total: '설문 결과값 가중치 적용',
+      male: '남성 설문 가중치 적용',
+      female: '여성 설문 가중치 적용',
+      budget: '가성비·통학 시나리오',
+      safe_conven: '안심·편의 시나리오',
+      quiet_new: '신축·저소음 시나리오',
+    };
     if (this.state.isCustomWeight) {
-      this.dom.presetNoteText.textContent = '사용자 직접 비중 조정 중';
+      this.dom.presetNoteText.textContent = '사용자 지정 가중치';
     } else {
       const preset = this.presetsData?.presets?.[this.state.presetKey];
-      this.dom.presetNoteText.textContent = preset ? preset.label : '';
+      this.dom.presetNoteText.textContent =
+        PRESET_DISPLAY_NOTES[this.state.presetKey] || (preset ? preset.label : '');
     }
   }
 
