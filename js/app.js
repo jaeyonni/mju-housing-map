@@ -4,8 +4,8 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=7';
-import { MapRenderer } from './mapRenderer.js?v=7';
+} from './colorScale.js?v=8';
+import { MapRenderer } from './mapRenderer.js?v=8';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -408,25 +408,61 @@ class HousingApp {
 
     let sMin = Infinity;
     let sMax = -Infinity;
-    let rMin = Infinity;
-    let rMax = -Infinity;
+    const rents = [];
     this.rankById = new Map();
 
     candidates.forEach((b, idx) => {
       this.rankById.set(b.id, idx + 1);
       if (b.currentScore < sMin) sMin = b.currentScore;
       if (b.currentScore > sMax) sMax = b.currentScore;
-      if (b.pr != null) {
-        if (b.pr < rMin) rMin = b.pr;
-        if (b.pr > rMax) rMax = b.pr;
-      }
+      if (b.pr != null) rents.push(b.pr);
     });
+
+    rents.sort((a, b) => a - b);
+    const quantile = (sortedArr, q) => {
+      if (sortedArr.length === 0) return null;
+      const pos = (sortedArr.length - 1) * q;
+      const base = Math.floor(pos);
+      const rest = pos - base;
+      if (base + 1 < sortedArr.length) {
+        return sortedArr[base] + rest * (sortedArr[base + 1] - sortedArr[base]);
+      }
+      return sortedArr[base];
+    };
+
+    let rMin = 42.0;
+    let rMid = 53.0;
+    let rMax = 75.0;
+    let clippedLow = false;
+    let clippedHigh = false;
+    if (rents.length > 0) {
+      const trueMin = rents[0];
+      const trueMax = rents[rents.length - 1];
+      if (rents.length >= 20) {
+        rMin = quantile(rents, 0.05);
+        rMid = quantile(rents, 0.5);
+        rMax = quantile(rents, 0.85);
+        if (rMax - rMin < 5) {
+          rMin = trueMin;
+          rMax = trueMax;
+        }
+      } else {
+        rMin = trueMin;
+        rMax = trueMax;
+        rMid = quantile(rents, 0.5);
+      }
+      clippedLow = rMin > trueMin + 0.5;
+      clippedHigh = rMax < trueMax - 0.5;
+    }
 
     this.sortedCandidates = candidates;
     this.state.scoreMin = Number.isFinite(sMin) ? sMin : 1.0;
     this.state.scoreMax = Number.isFinite(sMax) ? sMax : 4.6;
-    this.state.rentMin = Number.isFinite(rMin) ? rMin : 35.0;
-    this.state.rentMax = Number.isFinite(rMax) ? rMax : 95.0;
+    this.state.rentMin = rMin;
+    this.state.rentMid = rMid;
+    this.state.rentMax = rMax;
+    this.state.rentClippedLow = clippedLow;
+    this.state.rentClippedHigh = clippedHigh;
 
     this.dom.candidateCountBadge.textContent = `후보 ${candidates.length.toLocaleString()} / ${this.buildings.length.toLocaleString()}동`;
     this.dom.mobileCountPill.textContent = String(candidates.length);
@@ -462,10 +498,13 @@ class HousingApp {
     } else {
       this.dom.legendTitle.textContent = '환산월세 (싼 곳이 진하게)';
       this.dom.legendBar.style.background = LEGEND_GRADIENTS.rent;
-      if (this.sortedCandidates.length > 0) {
-        this.dom.legendMinLabel.textContent = `비쌈 (${Math.round(this.state.rentMax)}만)`;
-        this.dom.legendMidLabel.textContent = '';
-        this.dom.legendMaxLabel.textContent = `저렴 (${Math.round(this.state.rentMin)}만)`;
+      const hasRent = this.sortedCandidates.some((b) => b.pr != null);
+      if (hasRent) {
+        const hiSuffix = this.state.rentClippedHigh ? '+' : '';
+        const loSuffix = this.state.rentClippedLow ? '↓' : '';
+        this.dom.legendMinLabel.textContent = `비쌈 (${Math.round(this.state.rentMax)}만${hiSuffix})`;
+        this.dom.legendMidLabel.textContent = `${Math.round(this.state.rentMid)}만`;
+        this.dom.legendMaxLabel.textContent = `저렴 (${Math.round(this.state.rentMin)}만${loSuffix})`;
       } else {
         this.dom.legendMinLabel.textContent = '비쌈';
         this.dom.legendMidLabel.textContent = '';
