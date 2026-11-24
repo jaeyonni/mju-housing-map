@@ -1,20 +1,12 @@
-// Viridis 및 역방향 환산월세 색상 스케일 유틸리티
+// 통합 빨강→노랑→초록(RdYlGn) 색상 스케일 유틸리티
+// 총점(낮음→높음), 환산월세(비쌈→저렴), 7요소 막대(1점→5점) 모두 동일 규칙 사용
 
-const VIRIDIS_STOPS = [
-  [0.0, [68, 1, 84]],     // #440154
-  [0.25, [59, 82, 139]],  // #3b528b
-  [0.5, [33, 145, 140]],  // #21918c
-  [0.75, [94, 201, 98]],  // #5ec962
-  [1.0, [253, 231, 37]],  // #fde725
-];
-
-// 환산월세: 비쌈(빨강) -> 중간(노랑) -> 저렴(초록)
-const RENT_INV_STOPS = [
-  [0.0, [215, 48, 39]],   // #d73027 (비쌈)
+const RDYLGN_STOPS = [
+  [0.0, [215, 48, 39]],   // #d73027 (낮음 / 비쌈)
   [0.28, [249, 115, 22]], // #f97316 (주황)
   [0.55, [250, 204, 21]], // #facc15 (노랑)
   [0.8, [74, 222, 128]],  // #4ade80 (연초록)
-  [1.0, [21, 128, 61]],   // #15803d (저렴 - 진한 초록)
+  [1.0, [21, 128, 61]],   // #15803d (높음 / 저렴 - 진한 초록)
 ];
 
 function lerpStops(stops, t) {
@@ -30,25 +22,25 @@ function lerpStops(stops, t) {
       return `rgb(${r}, ${g}, ${b})`;
     }
   }
-  return 'rgb(68, 1, 84)';
+  return 'rgb(215, 48, 39)';
 }
 
 export function getScoreColor(score, minScore, maxScore) {
   const span = maxScore - minScore;
   const t = span > 1e-4 ? (score - minScore) / span : 0.65;
-  return lerpStops(VIRIDIS_STOPS, t);
+  return lerpStops(RDYLGN_STOPS, t);
 }
 
 export function getRentColor(rent, minRent, maxRent) {
   if (rent == null || Number.isNaN(rent)) return '#cbd5e1';
   const span = maxRent - minRent;
-  // 저렴할수록 t -> 1.0 (진한 녹색)
+  // 저렴할수록 t -> 1.0 (초록)
   const t = span > 1e-4 ? (maxRent - rent) / span : 0.5;
-  return lerpStops(RENT_INV_STOPS, t);
+  return lerpStops(RDYLGN_STOPS, t);
 }
 
 export function getFactorBarColor(val) {
-  return lerpStops(VIRIDIS_STOPS, (val - 1.0) / 4.0);
+  return lerpStops(RDYLGN_STOPS, (val - 1.0) / 4.0);
 }
 
 export function getRoadRentColor(conv) {
@@ -58,9 +50,12 @@ export function getRoadRentColor(conv) {
   return '#dc2626';
 }
 
+const RDYLGN_CSS =
+  'linear-gradient(to right, #d73027 0%, #f97316 28%, #facc15 55%, #4ade80 80%, #15803d 100%)';
+
 export const LEGEND_GRADIENTS = {
-  score: 'linear-gradient(to right, #440154 0%, #3b528b 25%, #21918c 50%, #5ec962 75%, #fde725 100%)',
-  rent: 'linear-gradient(to right, #d73027 0%, #f97316 28%, #facc15 55%, #4ade80 80%, #15803d 100%)',
+  score: RDYLGN_CSS,
+  rent: RDYLGN_CSS,
 };
 
 export function formatDistance(meters) {

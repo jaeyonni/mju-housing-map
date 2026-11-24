@@ -4,8 +4,8 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=9';
-import { MapRenderer } from './mapRenderer.js?v=9';
+} from './colorScale.js?v=10';
+import { MapRenderer } from './mapRenderer.js?v=10';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -484,7 +484,7 @@ class HousingApp {
 
   _updateLegend() {
     if (this.state.colorMode === 'score') {
-      this.dom.legendTitle.textContent = '색상(후보 중 상대)';
+      this.dom.legendTitle.textContent = '총점 (낮음→높음)';
       this.dom.legendBar.style.background = LEGEND_GRADIENTS.score;
       if (this.sortedCandidates.length > 0) {
         this.dom.legendMinLabel.textContent = `낮음 (${this.state.scoreMin.toFixed(2)})`;
