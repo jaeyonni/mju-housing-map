@@ -333,15 +333,6 @@ class HousingApp {
     });
 
     // 우상단 지도 도구바
-    document.querySelectorAll('[data-basemap]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-basemap]').forEach((el) =>
-          el.classList.toggle('active', el === btn)
-        );
-        this.renderer.setBasemap(btn.dataset.basemap);
-      });
-    });
-
     this.dom.toggleZonesBtn.addEventListener('click', () => {
       const next = !this.renderer.state.showZones;
       this.dom.toggleZonesBtn.classList.toggle('active', next);

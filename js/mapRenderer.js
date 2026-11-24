@@ -142,7 +142,6 @@ export class MapRenderer {
       colorMode: 'score',
       labelMode: 'both',
       showCampusRadius: true,
-      basemap: 'white',
       showZones: false,
       showRail: false,
       showRoadsRent: false,
@@ -168,14 +167,13 @@ export class MapRenderer {
 
     this.map.attributionControl.setPrefix('');
 
-    this.positronLayer = L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-      {
-        subdomains: 'abcd',
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-      }
-    );
+    this.osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      crossOrigin: true,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+    });
+    this.osmLayer.addTo(this.map);
 
     this.canvasLayer = new HousingCanvasLayer(this);
     this.canvasLayer.addTo(this.map);
@@ -244,21 +242,6 @@ export class MapRenderer {
     this.map.flyTo([building.c[1], building.c[0]], targetZoom, { duration: 0.45 });
   }
 
-  setBasemap(mode) {
-    if (this.state.basemap === mode) return;
-    this.state.basemap = mode;
-    if (mode === 'positron') {
-      this.positronLayer.addTo(this.map);
-      this.map.getContainer().style.background = '#f8fafc';
-    } else {
-      if (this.map.hasLayer(this.positronLayer)) {
-        this.map.removeLayer(this.positronLayer);
-      }
-      this.map.getContainer().style.background = '#ffffff';
-    }
-    this.canvasLayer.redraw();
-  }
-
   updateViewState(patch) {
     Object.assign(this.state, patch);
     this.canvasLayer.redraw();
@@ -309,7 +292,6 @@ export class MapRenderer {
   drawFrame(ctx, viewW, viewH) {
     if (!this.context) return;
     const zoom = this.map.getZoom();
-    const isPositron = this.state.basemap === 'positron';
     const bds = this.map.getBounds().pad(0.08);
     const minLon = bds.getWest();
     const maxLon = bds.getEast();
@@ -326,61 +308,18 @@ export class MapRenderer {
         ctx.beginPath();
         this._drawGeoFeaturePoly(ctx, ft.geometry);
         ctx.fillStyle = ZONE_PALETTE[idx % ZONE_PALETTE.length];
-        ctx.globalAlpha = isPositron ? 0.25 : 0.42;
+        ctx.globalAlpha = 0.22;
         ctx.fill();
-        ctx.globalAlpha = 0.75;
-        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.8;
+        ctx.lineWidth = 1.25;
         ctx.setLineDash([4, 3]);
-        ctx.strokeStyle = '#64748b';
+        ctx.strokeStyle = '#475569';
         ctx.stroke();
       });
       ctx.restore();
     }
 
-    // 2. 배경 수계 · 도로 · 비주거 건물 (백지도에서는 은은하게, 일반지도에서는 극히 연하게)
-    if (!isPositron) {
-      // 수계
-      ctx.save();
-      ctx.beginPath();
-      for (const ring of this.context.water) {
-        this._drawRingPath(ctx, ring);
-      }
-      ctx.fillStyle = '#edf5f9';
-      ctx.fill();
-      ctx.restore();
-
-      // 도로 중심선
-      ctx.save();
-      ctx.beginPath();
-      for (const line of this.context.roads) {
-        for (let i = 0; i < line.length; i += 1) {
-          const pt = this._toPt(line[i][0], line[i][1]);
-          if (i === 0) ctx.moveTo(pt.x, pt.y);
-          else ctx.lineTo(pt.x, pt.y);
-        }
-      }
-      ctx.lineWidth = zoom >= 15.5 ? 1.15 : 0.7;
-      ctx.strokeStyle = '#edf0f2';
-      ctx.stroke();
-      ctx.restore();
-
-      // 비주거·캠퍼스 배경 건물
-      ctx.save();
-      ctx.beginPath();
-      for (const ring of this.context.bg_buildings) {
-        const p0 = ring[0];
-        if (!inView(p0[0], p0[1]) && zoom >= 15) continue;
-        this._drawRingPath(ctx, ring);
-      }
-      ctx.fillStyle = '#f2f4f5';
-      ctx.fill();
-      ctx.lineWidth = 0.45;
-      ctx.strokeStyle = '#e5e7eb';
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // 3. 선택 레이어: 도로 전월세 실거래가 47개 도로
+    // 2. 선택 레이어: 도로 전월세 실거래가 47개 도로
     if (this.state.showRoadsRent && this.roadsRent) {
       ctx.save();
       ctx.lineCap = 'round';
@@ -396,29 +335,29 @@ export class MapRenderer {
             else ctx.lineTo(pt.x, pt.y);
           }
         }
-        ctx.lineWidth = zoom >= 15 ? 4.2 : 2.6;
-        ctx.globalAlpha = 0.72;
+        ctx.lineWidth = zoom >= 15 ? 4.4 : 2.8;
+        ctx.globalAlpha = 0.78;
         ctx.strokeStyle = getRoadRentColor(prp.conv);
         ctx.stroke();
       }
       ctx.restore();
     }
 
-    // 4. 행정동 경계 (역북동·남동 점선)
+    // 3. 행정동 경계 (역북동·남동 점선)
     if (this.context.admin) {
       ctx.save();
       ctx.beginPath();
       for (const ft of this.context.admin.features) {
         this._drawGeoFeaturePoly(ctx, ft.geometry);
       }
-      ctx.lineWidth = 1.15;
-      ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = isPositron ? '#64748b' : '#9ca3af';
+      ctx.lineWidth = 1.35;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = '#475569';
       ctx.stroke();
       ctx.restore();
     }
 
-    // 5. 필터에서 제외된 주거 건물 (위치 맥락 유지용 연회색)
+    // 4. 필터에서 제외된 주거 건물 (위치 맥락 유지용 연회색)
     ctx.save();
     ctx.beginPath();
     for (const b of this.allBuildings) {
@@ -428,15 +367,15 @@ export class MapRenderer {
         this._drawRingPath(ctx, ring);
       }
     }
-    ctx.fillStyle = isPositron ? 'rgba(203, 213, 225, 0.35)' : '#e9ecef';
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.32)';
     ctx.fill();
     ctx.restore();
 
-    // 6. 후보 주거 건물 폴리곤 (점수 오름차순으로 그려 고득점 건물이 위에 선명히 표시)
+    // 5. 후보 주거 건물 폴리곤 (점수 오름차순으로 그려 고득점 건물이 위에 선명히 표시)
     const drawOrder = [...this.sortedCandidates].reverse();
     this.hitCache = [];
     const useScoreColor = this.state.colorMode === 'score';
-    const tinyOutlineW = zoom < 14.8 ? 0.9 : 0.65;
+    const tinyOutlineW = zoom < 14.8 ? 1.0 : 0.75;
 
     for (const b of drawOrder) {
       if (!inView(b.c[0], b.c[1])) continue;
@@ -471,7 +410,7 @@ export class MapRenderer {
       ctx.fillStyle = color;
       ctx.fill();
       ctx.lineWidth = tinyOutlineW;
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = zoom >= 15.5 ? 'rgba(15, 23, 42, 0.22)' : color;
       ctx.stroke();
 
       const cpt = this._toPt(b.c[0], b.c[1]);
@@ -711,7 +650,7 @@ export class MapRenderer {
       ctx.arc(centerPt.x, centerPt.y, pxRadius, 0, Math.PI * 2);
       ctx.lineWidth = 1.05;
       ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = '#6b7280';
+      ctx.strokeStyle = '#4b5563';
       ctx.stroke();
 
       // 우상단(약 45도) 직선거리 라벨
