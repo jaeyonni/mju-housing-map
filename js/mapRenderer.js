@@ -1,4 +1,4 @@
-import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=4';
+import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=5';
 
 const MJU_GATE = [37.22677, 127.18804];
 const RADIUS_METERS = [800, 1600, 2400, 3200];
@@ -75,6 +75,7 @@ class HousingCanvasLayer extends L.Layer {
     this._padY = 0;
     this._drawnZoom = null;
     this._drawnTopLeftLatLng = null;
+    this._drawnOriginLayerPt = null;
   }
 
   onAdd(map) {
@@ -128,12 +129,12 @@ class HousingCanvasLayer extends L.Layer {
       this._updateTransform(this._map.getCenter(), curZoom);
       return;
     }
-    // 오버스캔 여유폭(35%)의 78% 이상 드래그했을 때만 재렌더링, 그 안에서는 GPU 패닝 유지
+    // 오버스캔 여유폭(50%)의 88% 이상 드래그했을 때만 재렌더링, 그 안에서는 GPU 패닝 유지
     const curTopLeft = this._map.containerPointToLayerPoint([0, 0]);
     const drawnOrigin = this._map.latLngToLayerPoint(this._drawnTopLeftLatLng);
     const driftX = Math.abs(curTopLeft.x - this._padX - drawnOrigin.x);
     const driftY = Math.abs(curTopLeft.y - this._padY - drawnOrigin.y);
-    if (driftX > this._padX * 0.78 || driftY > this._padY * 0.78) {
+    if (driftX > this._padX * 0.88 || driftY > this._padY * 0.88) {
       this._reset();
     }
   }
@@ -141,8 +142,8 @@ class HousingCanvasLayer extends L.Layer {
   _reset() {
     if (!this._map || !this.canvas) return;
     const size = this._map.getSize();
-    const padX = Math.round(size.x * 0.35);
-    const padY = Math.round(size.y * 0.35);
+    const padX = Math.round(size.x * 0.5);
+    const padY = Math.round(size.y * 0.5);
     const canvasW = Math.max(1, size.x + padX * 2);
     const canvasH = Math.max(1, size.y + padY * 2);
 
@@ -152,6 +153,7 @@ class HousingCanvasLayer extends L.Layer {
     this._drawnTopLeftLatLng = this._map.containerPointToLatLng([-padX, -padY]);
 
     const topLeft = this._map.containerPointToLayerPoint([-padX, -padY]);
+    this._drawnOriginLayerPt = topLeft;
     L.DomUtil.setTransform(this.canvas, topLeft, 1);
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -166,7 +168,12 @@ class HousingCanvasLayer extends L.Layer {
 
   redraw() {
     if (!this._map || !this.canvas) return;
-    if (this._drawnZoom == null || this._drawnZoom !== this._map.getZoom()) {
+    const expectedLayerPt = this._map.containerPointToLayerPoint([-this._padX, -this._padY]);
+    const desynced =
+      !this._drawnOriginLayerPt ||
+      Math.abs(expectedLayerPt.x - this._drawnOriginLayerPt.x) > 0.5 ||
+      Math.abs(expectedLayerPt.y - this._drawnOriginLayerPt.y) > 0.5;
+    if (this._drawnZoom == null || this._drawnZoom !== this._map.getZoom() || desynced) {
       this._reset();
       return;
     }
@@ -195,6 +202,7 @@ export class MapRenderer {
     this.scoreMax = 4.6;
     this.rentMin = 35.0;
     this.rentMax = 95.0;
+    this._isMoving = false;
 
     this.state = {
       colorMode: 'score',
@@ -239,7 +247,23 @@ export class MapRenderer {
   }
 
   _bindMapEvents() {
+    this.map.on('movestart zoomstart dragstart', () => {
+      this._isMoving = true;
+      this.state.hoveredId = null;
+      this.map.getContainer().style.cursor = '';
+      if (this.handlers.onHover) {
+        this.handlers.onHover(null, null);
+      }
+    });
+
+    this.map.on('moveend zoomend dragend', () => {
+      this._isMoving = false;
+    });
+
     this.map.on('mousemove', (ev) => {
+      if (this._isMoving || this.map._animatingZoom || (ev.originalEvent && ev.originalEvent.buttons !== 0)) {
+        return;
+      }
       const hit = this._hitTest(ev.containerPoint);
       const nextHover = hit ? hit.id : null;
       this.map.getContainer().style.cursor = hit ? 'pointer' : '';
@@ -253,6 +277,7 @@ export class MapRenderer {
     });
 
     this.map.on('mouseout', () => {
+      if (this._isMoving) return;
       if (this.state.hoveredId !== null) {
         this.state.hoveredId = null;
         this.canvasLayer.redraw();

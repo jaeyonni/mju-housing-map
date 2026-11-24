@@ -4,8 +4,8 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=4';
-import { MapRenderer } from './mapRenderer.js?v=4';
+} from './colorScale.js?v=5';
+import { MapRenderer } from './mapRenderer.js?v=5';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
