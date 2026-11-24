@@ -1,4 +1,4 @@
-import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js';
+import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=3';
 
 const MJU_GATE = [37.22677, 127.18804];
 const RADIUS_METERS = [800, 1600, 2400, 3200];
@@ -169,7 +169,6 @@ export class MapRenderer {
 
     this.osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      crossOrigin: true,
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
     });
@@ -599,11 +598,11 @@ export class MapRenderer {
       if (pt.x < 30 || pt.x > viewW - 30 || pt.y < 20 || pt.y > viewH - 20) continue;
 
       const scoreTxt = b.currentScore.toFixed(1);
-      const rentTxt = b.pr != null ? `${Math.round(b.pr)}만` : '-';
+      const rentTxt = b.pr != null ? `${Math.round(b.pr)}만` : '';
       let text = '';
       if (mode === 'score') text = scoreTxt;
-      else if (mode === 'rent') text = rentTxt;
-      else text = `${scoreTxt} · ${rentTxt}`;
+      else if (mode === 'rent') text = rentTxt || '미수집';
+      else text = rentTxt ? `${scoreTxt} · ${rentTxt}` : scoreTxt;
 
       const metrics = ctx.measureText(text);
       const tw = metrics.width;

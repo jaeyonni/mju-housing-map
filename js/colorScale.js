@@ -81,5 +81,6 @@ export function formatBuildingMeta(b) {
   if (b.fl && b.fl > 0) parts.push(`${b.fl}층`);
   if (b.yr) parts.push(`${b.yr}년`);
   if (b.pr != null) parts.push(`월세환산 약 ${Math.round(b.pr)}만`);
+  else if (b.ps === '미수집') parts.push('시세 미수집');
   return parts.join(' · ');
 }

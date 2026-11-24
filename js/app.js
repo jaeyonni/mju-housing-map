@@ -4,8 +4,8 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js';
-import { MapRenderer } from './mapRenderer.js';
+} from './colorScale.js?v=3';
+import { MapRenderer } from './mapRenderer.js?v=3';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -35,7 +35,7 @@ class HousingApp {
       labelMode: 'both',
       showCampusRadius: true,
       dong: 'all',
-      cat: 'all',
+      cat: 'jachwi',
       budgetMax: 101,
       searchQuery: '',
       rankLimit: 15,
@@ -88,6 +88,7 @@ class HousingApp {
       detailScore: document.getElementById('detail-score'),
       detailRent: document.getElementById('detail-rent'),
       detailMetaGrid: document.getElementById('detail-meta-grid'),
+      detailNotice: document.getElementById('detail-notice'),
       detailFactors: document.getElementById('detail-factors'),
       detailNaverLink: document.getElementById('detail-naver-link'),
       detailKakaoLink: document.getElementById('detail-kakao-link'),
@@ -105,11 +106,11 @@ class HousingApp {
   async init() {
     try {
       const [buildings, context, microZones, roadsRent, presetsData] = await Promise.all([
-        this._fetchJson('./data/buildings.json'),
-        this._fetchJson('./data/context.json'),
-        this._fetchJson('./data/micro_zones.geojson'),
-        this._fetchJson('./data/roads_rent.geojson'),
-        this._fetchJson('./data/weights_presets.json'),
+        this._fetchJson('./data/buildings.json?v=3'),
+        this._fetchJson('./data/context.json?v=3'),
+        this._fetchJson('./data/micro_zones.geojson?v=3'),
+        this._fetchJson('./data/roads_rent.geojson?v=3'),
+        this._fetchJson('./data/weights_presets.json?v=3'),
       ]);
 
       this.buildings = buildings;
@@ -394,7 +395,11 @@ class HousingApp {
         s[6] * w[6];
 
       if (dong !== 'all' && b.d !== dong) continue;
-      if (cat !== 'all' && b.cat !== cat) continue;
+      if (cat === 'jachwi') {
+        if (b.cat === '아파트') continue;
+      } else if (cat !== 'all' && b.cat !== cat) {
+        continue;
+      }
       if (budgetMax < 101 && (b.pr == null || b.pr > budgetMax)) continue;
       if (searchQuery) {
         const hay = `${b.nm} ${b.rd} ${b.zn} ${b.d} ${b.cat}`.toLowerCase();
@@ -559,7 +564,7 @@ class HousingApp {
     }
     const rnk = this.rankById.get(building.id);
     const title = getBuildingDisplayName(building);
-    const rentStr = building.pr != null ? `${Math.round(building.pr)}만(${building.ps})` : '시세 미상';
+    const rentStr = building.pr != null ? `${Math.round(building.pr)}만(${building.ps})` : '시세 미수집';
     tip.innerHTML = `<strong>${title}</strong>${rnk ? `#${rnk} · ` : ''}점수 ${building.currentScore.toFixed(2)} · 월세 ${rentStr}`;
     tip.hidden = false;
 
@@ -601,8 +606,14 @@ class HousingApp {
     const rnk = this.rankById.get(id);
     this.dom.detailCard.hidden = false;
 
-    const psClass = b.ps === '실측' ? 'd-badge-actual' : 'd-badge-est';
-    const psLabel = b.ps === '실측' ? `전월세 실측 (${b.pc}건)` : `시세 ${b.ps || '추정'}`;
+    const isUncollected = b.pr == null || b.ps === '미수집';
+    const psClass = b.ps === '실측' ? 'd-badge-actual' : isUncollected ? '' : 'd-badge-est';
+    const psLabel =
+      b.ps === '실측'
+        ? `전월세 실측 (${b.pc}건)`
+        : isUncollected
+          ? '아파트 실거래 미수집'
+          : `시세 ${b.ps || '추정'}`;
     this.dom.detailBadges.innerHTML = `
       <span class="d-badge">${b.d}</span>
       <span class="d-badge">${b.cat}</span>
@@ -616,7 +627,7 @@ class HousingApp {
 
     this.dom.detailRank.textContent = rnk ? `#${rnk} / ${this.sortedCandidates.length}` : '조건 외';
     this.dom.detailScore.textContent = `${b.currentScore.toFixed(2)}점`;
-    this.dom.detailRent.textContent = b.pr != null ? `약 ${b.pr.toFixed(1)}만` : '-';
+    this.dom.detailRent.textContent = b.pr != null ? `약 ${b.pr.toFixed(1)}만` : '미수집';
 
     this.dom.detailMetaGrid.innerHTML = `
       <div class="meta-cell"><span class="meta-k">정문 직선</span><span class="meta-v">${formatDistance(b.dist)}</span></div>
@@ -624,6 +635,15 @@ class HousingApp {
       <div class="meta-cell"><span class="meta-k">준공 연도</span><span class="meta-v">${b.yr ? `${b.yr}년` : '미상'}</span></div>
       <div class="meta-cell"><span class="meta-k">지형 경사</span><span class="meta-v">${b.slp != null ? `${b.slp.toFixed(1)}°` : '-'}</span></div>
     `;
+
+    if (isUncollected) {
+      this.dom.detailNotice.hidden = false;
+      this.dom.detailNotice.textContent =
+        '※ 전월세 시세는 자취용(원룸·빌라·오피스텔) 실거래 기준이며 아파트는 미수집입니다.';
+    } else {
+      this.dom.detailNotice.hidden = true;
+      this.dom.detailNotice.textContent = '';
+    }
 
     // 7개 요소 막대
     const factorFrag = document.createDocumentFragment();

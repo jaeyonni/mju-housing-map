@@ -114,21 +114,43 @@ def build_buildings(weights_presets):
 
         dist_m = haversine_m(lon, lat, MJU_GATE_LON, MJU_GATE_LAT)
 
+        nm_val = (prp.get('nm') or '').strip()
+        cat_val = prp['cat']
+        fl_val = prp.get('fl') or 0
+        pr_val = prp.get('pr')
+        ps_val = prp.get('ps') or ''
+        pc_val = prp.get('pc') or 0
+
+        # 고층 단지형 아파트가 빌라/다세대로 분류된 경우 보정
+        if cat_val != '오피스텔' and (
+            'ROYALDUKE' in nm_val.upper()
+            or '삼라마이다스빌' in nm_val
+            or fl_val >= 15
+        ):
+            cat_val = '아파트'
+
+        # 아파트는 자취 전월세 실거래 수집 대상이 아니므로(실측 2건 제외)
+        # 인접 원룸·오피스텔 도로 평균 역투영값으로 오인되지 않도록 미수집 처리
+        if cat_val == '아파트' and ps_val != '실측':
+            pr_val = None
+            ps_val = '미수집'
+            pc_val = 0
+
         records.append({
             'id': bid,
-            'nm': prp.get('nm') or '',
+            'nm': nm_val,
             'd': prp['d'],
             'z': prp['z'],
             'zn': prp['zn'],
-            'cat': prp['cat'],
+            'cat': cat_val,
             'yr': prp.get('yr'),
             'age': prp.get('age'),
-            'fl': prp.get('fl') or 0,
+            'fl': fl_val,
             'elv': prp.get('elv'),
             'slp': prp.get('slp'),
-            'pr': prp.get('pr'),
-            'ps': prp.get('ps') or '',
-            'pc': prp.get('pc') or 0,
+            'pr': pr_val,
+            'ps': ps_val,
+            'pc': pc_val,
             'rd': prp.get('rd') or '',
             's': scores,
             'c': [lon, lat],
