@@ -4,9 +4,9 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=16';
-import { CommentsController } from './comments.js?v=16';
-import { MapRenderer } from './mapRenderer.js?v=16';
+} from './colorScale.js?v=17';
+import { CommentsController } from './comments.js?v=17';
+import { MapRenderer } from './mapRenderer.js?v=17';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -422,12 +422,17 @@ class HousingApp {
     this.dom.mobileDrawerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
   }
 
+  _isMobileViewport() {
+    return window.matchMedia('(max-width: 820px)').matches;
+  }
+
   _setCommentsPanel(open) {
     if (!this.dom.commentsPanel) return;
     this.dom.commentsPanel.hidden = !open;
     this.dom.toggleCommentsBtn?.classList.toggle('active', open);
+    this.dom.toggleCommentsBtn?.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) {
-      if (!this.dom.detailCard.hidden) {
+      if (this._isMobileViewport() && !this.dom.detailCard.hidden) {
         this.dom.detailCard.hidden = true;
       }
       this.comments.syncSelectedBuildingShortcut();
@@ -480,7 +485,9 @@ class HousingApp {
       this.recompute();
     }
 
-    this._setCommentsPanel(false);
+    if (this._isMobileViewport()) {
+      this._setCommentsPanel(false);
+    }
     this._setMobileDrawer(false);
     this.selectBuilding(id, true);
   }
@@ -737,7 +744,9 @@ class HousingApp {
     const building = this.buildings.find((b) => b.id === id);
     if (!building) return;
 
-    this._setCommentsPanel(false);
+    if (this._isMobileViewport()) {
+      this._setCommentsPanel(false);
+    }
     if (flyTo) {
       this.renderer.focusBuilding(building);
     }
