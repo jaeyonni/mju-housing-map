@@ -39,7 +39,7 @@ mju-housing-map/
 │   ├── context.json           # 행정동 경계 및 용인경전철·주요시설 컨텍스트
 │   ├── micro_zones.geojson    # 7개 세부 생활권 통계 폴리곤
 │   ├── roads_rent.geojson     # 실거래 기반 47개 도로 평균 환산월세
-│   ├── weights_presets.json   # 설문·페르소나 가중치 프리셋
+│   ├── weights_presets.json   # 설문·시나리오 가중치 프리셋
 │   └── manifest.json          # 데이터셋 메타데이터
 └── scripts/
     └── build_site_data.py     # 통합 GIS 산출물에서 data/ 재생성용 스크립트
