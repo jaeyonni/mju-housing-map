@@ -1058,27 +1058,6 @@ body {
   .legend-card {
     display: none;
   }
-
-  .comments-panel {
-    top: auto;
-    bottom: 12px;
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-height: 70vh;
-    transform-origin: bottom right;
-  }
-
-  .community-fab {
-    top: auto;
-    left: auto;
-    right: 14px;
-    bottom: 18px;
-    padding: 10px 15px;
-    font-size: 13.5px;
-    z-index: 455;
-    transform-origin: bottom right;
-  }
 }
 
 /* ---------------- 실시간 댓글 · 건물 언급 기능 ---------------- */
@@ -1386,6 +1365,7 @@ body {
 .comment-input,
 .comment-textarea {
   width: 100%;
+  min-width: 0;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 7px 10px;
@@ -1681,4 +1661,52 @@ body {
   line-height: 1.48;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+@media (max-width: 820px) {
+  .community-fab {
+    top: 12px;
+    right: 12px;
+    left: auto;
+    bottom: auto;
+    padding: 7px 12px;
+    gap: 6px;
+    font-size: 12.5px;
+    box-shadow: 0 4px 12px rgba(35, 83, 64, 0.24);
+    transform-origin: top right;
+    z-index: 650;
+  }
+
+  .community-fab-icon {
+    font-size: 13px;
+  }
+
+  .community-fab-badge {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 11px;
+  }
+
+  .comments-panel {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    bottom: auto;
+    width: auto;
+    max-width: calc(100% - 24px);
+    max-height: 76vh;
+    transform-origin: top right;
+    z-index: 680;
+  }
+
+  .comment-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .comment-shortcut-btn {
+    max-width: none;
+    width: 100%;
+    padding: 6px 10px;
+  }
 }
