@@ -35,7 +35,7 @@ mju-housing-map/
 ├── .nojekyll                  # GitHub Pages Jekyll 비활성화
 ├── .gitignore
 ├── css/
-│   └── style.css              # 라이트 카토그래피 테마 및 반응형 드로어 UI
+│   └── style.css              # 명지 블루 포인트 테마 및 반응형 드로어 UI
 ├── js/
 │   ├── app.js                 # 상태 관리, 7요소 가중 계산, 필터, 상세 패널
 │   ├── comments.js            # Firebase Firestore 실시간 댓글 · 건물 언급/이동 연동

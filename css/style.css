@@ -1,15 +1,15 @@
 :root {
   --bg: #ffffff;
   --panel-bg: #ffffff;
-  --panel-subtle: #f8faf9;
+  --panel-subtle: #f7fafd;
   --border: #e5e7eb;
   --border-strong: #d1d5db;
   --text: #1f2937;
   --text-muted: #6b7280;
   --text-light: #9ca3af;
-  --accent: #235340;
-  --accent-hover: #1b4232;
-  --accent-soft: #eef5f1;
+  --accent: #0e3a7e;
+  --accent-hover: #092a5e;
+  --accent-soft: #edf4fc;
   --danger: #dc2626;
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08);
   --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
@@ -309,7 +309,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* 커스텀 레인지 슬라이더 (레퍼런스 딥그린 트랙/썸) */
+/* 커스텀 레인지 슬라이더 (명지 블루 트랙/썸) */
 .custom-range {
   -webkit-appearance: none;
   appearance: none;
@@ -335,7 +335,7 @@ body {
   border-radius: 50%;
   background: var(--accent);
   border: 2px solid #ffffff;
-  box-shadow: 0 0 0 1px rgba(35, 83, 64, 0.45);
+  box-shadow: 0 0 0 1px rgba(14, 58, 126, 0.45);
   transition: transform 0.1s ease;
 }
 
@@ -349,7 +349,7 @@ body {
   border-radius: 50%;
   background: var(--accent);
   border: 2px solid #ffffff;
-  box-shadow: 0 0 0 1px rgba(35, 83, 64, 0.45);
+  box-shadow: 0 0 0 1px rgba(14, 58, 126, 0.45);
 }
 
 /* 예산 행 */
@@ -395,7 +395,7 @@ body {
 
 .search-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(35, 83, 64, 0.12);
+  box-shadow: 0 0 0 2px rgba(14, 58, 126, 0.12);
 }
 
 .search-input::placeholder {
@@ -450,7 +450,7 @@ body {
 }
 
 .rank-item:hover {
-  background: #f8faf9;
+  background: #f5f9fe;
 }
 
 .rank-item.selected {
@@ -791,7 +791,7 @@ body {
 
 .kpi-box.kpi-primary {
   background: var(--accent-soft);
-  border-color: rgba(35, 83, 64, 0.2);
+  border-color: rgba(14, 58, 126, 0.2);
 }
 
 .kpi-label {
@@ -1078,7 +1078,7 @@ body {
   font-size: 14.5px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  box-shadow: 0 6px 18px rgba(35, 83, 64, 0.28);
+  box-shadow: 0 6px 18px rgba(14, 58, 126, 0.28);
   cursor: pointer;
   transform-origin: top left;
   transition: opacity 0.16s ease, transform 0.16s ease, box-shadow 0.14s ease, background-color 0.14s ease;
@@ -1087,7 +1087,7 @@ body {
 .community-fab:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 8px 22px rgba(35, 83, 64, 0.34);
+  box-shadow: 0 8px 22px rgba(14, 58, 126, 0.34);
 }
 
 .community-fab.active {
@@ -1167,8 +1167,8 @@ body {
 }
 
 .detail-comment-mini {
-  background: #f8faf9;
-  border: 1px solid #edf2ef;
+  background: #f5f9fe;
+  border: 1px solid #e2ecf8;
   border-radius: var(--radius-sm);
   padding: 7px 9px;
 }
@@ -1379,7 +1379,7 @@ body {
 .comment-input:focus,
 .comment-textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(35, 83, 64, 0.12);
+  box-shadow: 0 0 0 2px rgba(14, 58, 126, 0.12);
 }
 
 .comment-textarea {
@@ -1490,7 +1490,7 @@ body {
   padding: 3px 8px;
   border-radius: 999px;
   background: var(--accent-soft);
-  border: 1px solid rgba(35, 83, 64, 0.25);
+  border: 1px solid rgba(14, 58, 126, 0.25);
   color: var(--accent);
   font-size: 11.5px;
   font-weight: 600;
@@ -1619,7 +1619,7 @@ body {
   gap: 5px;
   margin-bottom: 6px;
   padding: 5px 8px;
-  border: 1px solid rgba(35, 83, 64, 0.22);
+  border: 1px solid rgba(14, 58, 126, 0.22);
   border-radius: var(--radius-sm);
   background: var(--accent-soft);
   color: var(--accent);
@@ -1632,7 +1632,7 @@ body {
 }
 
 .comment-bldg-chip:hover {
-  background: #dcece3;
+  background: #dbeafe;
   border-color: var(--accent);
 }
 
@@ -1672,7 +1672,7 @@ body {
     padding: 7px 12px;
     gap: 6px;
     font-size: 12.5px;
-    box-shadow: 0 4px 12px rgba(35, 83, 64, 0.24);
+    box-shadow: 0 4px 12px rgba(14, 58, 126, 0.24);
     transform-origin: top right;
     z-index: 650;
   }
