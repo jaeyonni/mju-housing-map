@@ -4,9 +4,9 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=18';
-import { CommentsController } from './comments.js?v=18';
-import { MapRenderer } from './mapRenderer.js?v=18';
+} from './colorScale.js?v=19';
+import { CommentsController } from './comments.js?v=19';
+import { MapRenderer } from './mapRenderer.js?v=19';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -603,7 +603,7 @@ class HousingApp {
 
     this._updateLegend();
     this._renderRanking();
-    if (this.state.selectedId) {
+    if (this.state.selectedId && !this.dom.detailCard.hidden) {
       this._renderDetailCard(this.state.selectedId);
     }
   }
@@ -719,7 +719,13 @@ class HousingApp {
     const rnk = this.rankById.get(building.id);
     const title = getBuildingDisplayName(building);
     const rentStr = building.pr != null ? `${Math.round(building.pr)}만(${building.ps})` : '시세 미수집';
-    tip.innerHTML = `<strong>${title}</strong>${rnk ? `#${rnk} · ` : ''}점수 ${building.currentScore.toFixed(2)} · 월세 ${rentStr}`;
+    const strong = document.createElement('strong');
+    strong.textContent = title;
+    const summary = document.createTextNode(
+      `${rnk ? `#${rnk} · ` : ''}점수 ${building.currentScore.toFixed(2)} · 월세 ${rentStr}`
+    );
+    tip.textContent = '';
+    tip.append(strong, summary);
     tip.hidden = false;
 
     const mapRect = this.renderer.map.getContainer().getBoundingClientRect();
@@ -738,6 +744,7 @@ class HousingApp {
 
     if (!id) {
       this.dom.detailCard.hidden = true;
+      this.comments.syncSelectedBuildingShortcut();
       return;
     }
 

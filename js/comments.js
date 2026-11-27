@@ -9,7 +9,7 @@ import {
   query,
   serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js';
-import { getBuildingDisplayName } from './colorScale.js?v=18';
+import { getBuildingDisplayName } from './colorScale.js?v=19';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyD5Eak_-pbVftfHKcprL3iy0s9hGOIt9hE',
@@ -295,16 +295,41 @@ export class CommentsController {
     }
 
     const buildings = this.getBuildings?.() || [];
-    const matches = [];
+    const ranked = [];
     for (let i = 0; i < buildings.length; i += 1) {
       const b = buildings[i];
       const name = getBuildingDisplayName(b);
-      const hay = `${name} ${b.nm || ''} ${b.rd || ''} ${b.d || ''} ${b.zn || ''}`.toLowerCase();
-      if (hay.includes(raw)) {
-        matches.push(b);
-        if (matches.length >= 6) break;
+      const nmLower = (b.nm || '').trim().toLowerCase();
+      const rdLower = (b.rd || '').trim().toLowerCase();
+      const dispLower = name.toLowerCase();
+      const dongLower = (b.d || '').toLowerCase();
+      const znLower = (b.zn || '').toLowerCase();
+
+      let tier = 99;
+      if (nmLower === raw) tier = 0;
+      else if (nmLower.startsWith(raw)) tier = 1;
+      else if (nmLower.includes(raw)) tier = 2;
+      else if (rdLower.startsWith(raw)) tier = 3;
+      else if (rdLower.includes(raw) || dispLower.includes(raw)) tier = 4;
+      else if (dongLower.includes(raw) || znLower.includes(raw)) tier = 5;
+
+      if (tier < 99) {
+        ranked.push({ b, name, tier });
       }
     }
+
+    ranked.sort((a, b) => {
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      const sa = a.b.currentScore ?? -1;
+      const sb = b.b.currentScore ?? -1;
+      if (Math.abs(sb - sa) > 1e-6) return sb - sa;
+      const actA = a.b.ps === '실측' ? 1 : 0;
+      const actB = b.b.ps === '실측' ? 1 : 0;
+      if (actA !== actB) return actB - actA;
+      return a.name.localeCompare(b.name, 'ko');
+    });
+
+    const matches = ranked.slice(0, 8).map((item) => item.b);
 
     dropdown.innerHTML = '';
     if (matches.length === 0) {
@@ -397,6 +422,9 @@ export class CommentsController {
       }
       if (this.dom.contentInput) {
         this.dom.contentInput.value = '';
+      }
+      if (!this.filterBuildingId) {
+        this.clearMentionedBuilding();
       }
       this._syncCharCount();
       this._setFormStatus('댓글이 등록되었습니다.', 'success');

@@ -1,4 +1,4 @@
-import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=13';
+import { getScoreColor, getRentColor, getRoadRentColor } from './colorScale.js?v=19';
 
 const MJU_GATE = [37.22677, 127.18804];
 const RADIUS_METERS = [800, 1600, 2400, 3200];
