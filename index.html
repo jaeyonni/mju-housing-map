@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="./css/style.css?v=13" />
+  <link rel="stylesheet" href="./css/style.css?v=15" />
 </head>
 <body>
   <div class="app-shell">
@@ -141,6 +141,12 @@
           <button id="toggle-roads-btn" class="tool-btn" type="button" title="실거래 기반 47개 도로 환산월세 표시">도로시세</button>
         </div>
         <div class="toolbar-group">
+          <button id="toggle-comments-btn" class="tool-btn tool-btn-comments" type="button" title="실시간 자취 후기 및 커뮤니티 댓글">
+            <span>후기·댓글</span>
+            <span id="comments-count-badge" class="tool-count-badge">0</span>
+          </button>
+        </div>
+        <div class="toolbar-group">
           <button id="zoom-in-btn" class="tool-btn tool-icon" type="button" aria-label="확대" title="확대">+</button>
           <button id="zoom-out-btn" class="tool-btn tool-icon" type="button" aria-label="축소" title="축소">−</button>
           <button id="fit-bounds-btn" class="tool-btn" type="button" title="전체 범위로 돌아가기">전체보기</button>
@@ -200,7 +206,72 @@
           <a id="detail-naver-link" class="ext-link-btn" href="#" target="_blank" rel="noopener noreferrer">네이버 지도 검색</a>
           <a id="detail-kakao-link" class="ext-link-btn" href="#" target="_blank" rel="noopener noreferrer">카카오맵 검색</a>
         </div>
+
+        <section class="detail-comments-section" aria-label="이 건물 언급 후기">
+          <div class="detail-comments-head">
+            <span>이 건물 언급 후기 (<strong id="detail-comments-count">0</strong>)</span>
+            <button id="detail-write-comment-btn" class="detail-write-comment-btn" type="button">+ 후기 쓰기</button>
+          </div>
+          <div id="detail-comments-list" class="detail-comments-list"></div>
+          <button id="detail-all-comments-btn" class="detail-all-comments-btn" type="button" hidden>이 건물 후기 전체 보기</button>
+        </section>
       </article>
+
+      <!-- 우측 플로팅 커뮤니티 댓글 패널 -->
+      <aside id="comments-panel" class="comments-panel" hidden aria-label="실시간 자취 후기 및 커뮤니티">
+        <div class="comments-header">
+          <div>
+            <div class="comments-title-row">
+              <h2 class="comments-title">자취 후기 · 커뮤니티</h2>
+              <span id="comments-total-count" class="comments-total-pill">0건</span>
+            </div>
+            <p class="comments-subtitle">건물을 태그하면 클릭 시 지도 위치와 상세 정보로 바로 이동합니다.</p>
+          </div>
+          <button id="comments-close-btn" class="detail-close-btn" type="button" aria-label="댓글 창 닫기">×</button>
+        </div>
+
+        <div class="comments-filter-row" role="tablist" aria-label="댓글 필터">
+          <button class="chip-btn active" type="button" data-comment-filter="all">전체</button>
+          <button class="chip-btn" type="button" data-comment-filter="building">건물 언급</button>
+          <button class="chip-btn" type="button" data-comment-filter="free">자유 글</button>
+        </div>
+
+        <div id="comments-building-filter" class="comments-building-filter" hidden>
+          <span id="comments-building-filter-name"></span>
+          <button id="comments-building-filter-clear" class="text-reset-btn" type="button">전체 보기</button>
+        </div>
+
+        <form id="comment-form" class="comment-form" novalidate>
+          <div class="comment-form-row">
+            <input id="comment-nickname" class="comment-input" type="text" maxlength="20" placeholder="닉네임 (예: 23학번)" required />
+            <button id="comment-mention-current-btn" class="comment-shortcut-btn" type="button" disabled>선택 건물 첨부</button>
+          </div>
+
+          <div class="mention-search-wrap">
+            <input id="comment-mention-input" class="comment-input" type="text" placeholder="건물 언급 검색 (선택 사항 · 예: 럭스나인, 명지로)" autocomplete="off" />
+            <div id="comment-mention-dropdown" class="mention-dropdown" hidden></div>
+          </div>
+
+          <div id="comment-mention-chip-wrap" class="mention-chip-wrap" hidden>
+            <span class="mention-chip">
+              <span>📍</span>
+              <span id="comment-mention-chip-label"></span>
+              <button id="comment-mention-chip-clear" class="mention-chip-clear" type="button" aria-label="건물 언급 제거">×</button>
+            </span>
+          </div>
+
+          <textarea id="comment-content" class="comment-textarea" rows="3" maxlength="500" placeholder="자취 후기, 동네 분위기, 치안·소음 체감 등을 자유롭게 남겨보세요." required></textarea>
+
+          <div class="comment-form-footer">
+            <span id="comment-char-count" class="comment-char-count">0 / 500</span>
+            <button id="comment-submit-btn" class="comment-submit-btn" type="submit">등록</button>
+          </div>
+          <p id="comment-form-status" class="comment-form-status" hidden></p>
+        </form>
+
+        <div id="comments-list-state" class="comments-list-state">실시간 댓글을 불러오는 중...</div>
+        <ul id="comments-list" class="comments-list"></ul>
+      </aside>
 
       <!-- 로딩 / 오류 오버레이 -->
       <div id="loading-overlay" class="loading-overlay">
@@ -213,6 +284,6 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script type="module" src="./js/app.js?v=14"></script>
+  <script type="module" src="./js/app.js?v=15"></script>
 </body>
 </html>

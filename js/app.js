@@ -4,8 +4,9 @@ import {
   getBuildingDisplayName,
   getFactorBarColor,
   LEGEND_GRADIENTS,
-} from './colorScale.js?v=13';
-import { MapRenderer } from './mapRenderer.js?v=13';
+} from './colorScale.js?v=15';
+import { CommentsController } from './comments.js?v=15';
+import { MapRenderer } from './mapRenderer.js?v=15';
 
 // 레퍼런스 사이드바 슬라이더 순서와 원본 factors 배열(s[0..6]) 매핑
 // s 순서: [0:가격, 1:통학, 2:경사도, 3:치안, 4:생활편의, 5:주거소음, 6:건물연식]
@@ -51,6 +52,28 @@ class HousingApp {
       onHover: (b, pt) => this._handleHover(b, pt),
       onSelect: (id) => this.selectBuilding(id, false),
     });
+    this.comments = new CommentsController({
+      getBuildings: () => this.buildings,
+      getSelectedBuilding: () =>
+        this.state.selectedId
+          ? this.buildings.find((b) => b.id === this.state.selectedId) || null
+          : null,
+      onSelectBuildingFromComment: (id) => this.focusBuildingFromComment(id),
+      onOpenPanel: (open) => this._setCommentsPanel(open),
+      onCommentsUpdated: (list) => {
+        if (this.dom.commentsCountBadge) {
+          this.dom.commentsCountBadge.textContent = String(list.length);
+        }
+        if (this.state.selectedId && !this.dom.detailCard.hidden) {
+          this.comments.renderBuildingCommentsPreview(
+            this.dom.detailCommentsList,
+            this.dom.detailCommentsCount,
+            this.dom.detailAllCommentsBtn,
+            this.state.selectedId
+          );
+        }
+      },
+    });
   }
 
   _collectDom() {
@@ -92,6 +115,13 @@ class HousingApp {
       detailFactors: document.getElementById('detail-factors'),
       detailNaverLink: document.getElementById('detail-naver-link'),
       detailKakaoLink: document.getElementById('detail-kakao-link'),
+      detailCommentsCount: document.getElementById('detail-comments-count'),
+      detailCommentsList: document.getElementById('detail-comments-list'),
+      detailWriteCommentBtn: document.getElementById('detail-write-comment-btn'),
+      detailAllCommentsBtn: document.getElementById('detail-all-comments-btn'),
+      commentsPanel: document.getElementById('comments-panel'),
+      toggleCommentsBtn: document.getElementById('toggle-comments-btn'),
+      commentsCountBadge: document.getElementById('comments-count-badge'),
       loadingOverlay: document.getElementById('loading-overlay'),
       loadingMessage: document.getElementById('loading-message'),
       toggleZonesBtn: document.getElementById('toggle-zones-btn'),
@@ -122,6 +152,7 @@ class HousingApp {
 
       this.renderer.setStaticData({ buildings, context, microZones, roadsRent });
       this.recompute();
+      this.comments.init();
 
       this.dom.loadingOverlay.hidden = true;
     } catch (err) {
@@ -354,11 +385,27 @@ class HousingApp {
     this.dom.zoomOutBtn.addEventListener('click', () => this.renderer.zoomOut());
     this.dom.fitBoundsBtn.addEventListener('click', () => this.renderer.fitHomeBounds(true));
 
+    this.dom.toggleCommentsBtn?.addEventListener('click', () => {
+      const next = Boolean(this.dom.commentsPanel?.hidden);
+      this._setCommentsPanel(next);
+    });
+
+    this.dom.detailWriteCommentBtn?.addEventListener('click', () => {
+      const b = this.buildings.find((x) => x.id === this.state.selectedId);
+      if (b) this.comments.openForBuilding(b, true);
+    });
+
+    this.dom.detailAllCommentsBtn?.addEventListener('click', () => {
+      const b = this.buildings.find((x) => x.id === this.state.selectedId);
+      if (b) this.comments.openFilteredByBuilding(b);
+    });
+
     // 상세 카드 닫기
     this.dom.detailCloseBtn.addEventListener('click', () => this.selectBuilding(null, false));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (!this.dom.detailCard.hidden) this.selectBuilding(null, false);
+        if (this.dom.commentsPanel && !this.dom.commentsPanel.hidden) this._setCommentsPanel(false);
         this._setMobileDrawer(false);
       }
     });
@@ -373,6 +420,69 @@ class HousingApp {
     this.dom.sidebar.classList.toggle('open', open);
     this.dom.mobileBackdrop.classList.toggle('open', open);
     this.dom.mobileDrawerBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  _setCommentsPanel(open) {
+    if (!this.dom.commentsPanel) return;
+    this.dom.commentsPanel.hidden = !open;
+    this.dom.toggleCommentsBtn?.classList.toggle('active', open);
+    if (open) {
+      if (!this.dom.detailCard.hidden) {
+        this.dom.detailCard.hidden = true;
+      }
+      this.comments.syncSelectedBuildingShortcut();
+    }
+  }
+
+  focusBuildingFromComment(id) {
+    const b = this.buildings.find((x) => x.id === id);
+    if (!b) return;
+
+    let filterChanged = false;
+    if (this.state.dong !== 'all' && b.d !== this.state.dong) {
+      this.state.dong = 'all';
+      document.querySelectorAll('[data-dong]').forEach((el) =>
+        el.classList.toggle('active', el.dataset.dong === 'all')
+      );
+      filterChanged = true;
+    }
+
+    const catMismatch =
+      (this.state.cat === 'jachwi' && b.cat === '아파트') ||
+      (this.state.cat !== 'jachwi' && this.state.cat !== 'all' && b.cat !== this.state.cat);
+    if (catMismatch) {
+      this.state.cat = b.cat === '아파트' ? 'all' : 'jachwi';
+      document.querySelectorAll('[data-cat]').forEach((el) =>
+        el.classList.toggle('active', el.dataset.cat === this.state.cat)
+      );
+      filterChanged = true;
+    }
+
+    if (this.state.budgetMax < 101 && (b.pr == null || b.pr > this.state.budgetMax)) {
+      this.state.budgetMax = 101;
+      this.dom.budgetSlider.value = '101';
+      this.dom.budgetSlider.style.setProperty('--fill-pct', '100%');
+      this.dom.budgetValue.textContent = '제한 없음';
+      filterChanged = true;
+    }
+
+    if (this.state.searchQuery) {
+      const hay = `${b.nm} ${b.rd} ${b.zn} ${b.d} ${b.cat}`.toLowerCase();
+      if (!hay.includes(this.state.searchQuery)) {
+        this.state.searchQuery = '';
+        this.dom.searchInput.value = '';
+        this.dom.searchClearBtn.hidden = true;
+        filterChanged = true;
+      }
+    }
+
+    if (filterChanged) {
+      this.recompute();
+    }
+
+    this._setCommentsPanel(false);
+    this._setMobileDrawer(false);
+    this.selectBuilding(id, true);
   }
 
   recompute() {
@@ -627,10 +737,12 @@ class HousingApp {
     const building = this.buildings.find((b) => b.id === id);
     if (!building) return;
 
+    this._setCommentsPanel(false);
     if (flyTo) {
       this.renderer.focusBuilding(building);
     }
     this._renderDetailCard(id);
+    this.comments.syncSelectedBuildingShortcut();
   }
 
   _renderDetailCard(id) {
@@ -705,6 +817,13 @@ class HousingApp {
     const queryText = encodeURIComponent(`용인시 처인구 ${b.d} ${b.nm || b.rd || ''}`.trim());
     this.dom.detailNaverLink.href = `https://map.naver.com/p/search/${queryText}`;
     this.dom.detailKakaoLink.href = `https://map.kakao.com/link/search/${queryText}`;
+
+    this.comments.renderBuildingCommentsPreview(
+      this.dom.detailCommentsList,
+      this.dom.detailCommentsCount,
+      this.dom.detailAllCommentsBtn,
+      id
+    );
   }
 }
 
