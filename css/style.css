@@ -1067,33 +1067,70 @@ body {
     width: auto;
     max-height: 68vh;
   }
+
+  .community-fab {
+    top: auto;
+    left: auto;
+    right: 14px;
+    bottom: 18px;
+    padding: 10px 15px;
+    font-size: 13.5px;
+    z-index: 455;
+  }
 }
 
 /* ---------------- 실시간 댓글 · 건물 언급 기능 ---------------- */
-.tool-btn-comments {
+.community-fab {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 460;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
+  padding: 10px 17px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: var(--accent);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  box-shadow: 0 6px 18px rgba(35, 83, 64, 0.28);
+  cursor: pointer;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
 }
 
-.tool-count-badge {
+.community-fab:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(35, 83, 64, 0.34);
+}
+
+.community-fab.active {
+  background: var(--accent-hover);
+  box-shadow: 0 0 0 3px rgba(35, 83, 64, 0.24), 0 6px 18px rgba(35, 83, 64, 0.3);
+}
+
+.community-fab-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.community-fab-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 800;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 16px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 10.5px;
-  font-weight: 700;
   font-variant-numeric: tabular-nums;
-}
-
-.tool-btn.active .tool-count-badge {
-  background: rgba(255, 255, 255, 0.22);
-  color: #ffffff;
 }
 
 /* 상세 카드 내 언급 후기 */

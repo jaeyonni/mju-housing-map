@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-dynamic-subset.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="./css/style.css?v=15" />
+  <link rel="stylesheet" href="./css/style.css?v=16" />
 </head>
 <body>
   <div class="app-shell">
@@ -133,18 +133,19 @@
     <main class="map-pane">
       <div id="map" class="map-canvas" role="region" aria-label="명지대 역북동·남동 자취 입지 지도"></div>
 
+      <!-- 좌상단 플로팅 커뮤니티 버튼 -->
+      <button id="toggle-comments-btn" class="community-fab" type="button" title="실시간 자취 커뮤니티 열기">
+        <span class="community-fab-icon" aria-hidden="true">💬</span>
+        <span class="community-fab-label">커뮤니티</span>
+        <span id="comments-count-badge" class="community-fab-badge">0</span>
+      </button>
+
       <!-- 우상단 플로팅 지도 도구바 -->
       <div class="map-toolbar" role="toolbar" aria-label="보조 레이어 및 지도 제어">
         <div class="toolbar-group">
           <button id="toggle-zones-btn" class="tool-btn" type="button" title="7개 세부 생활권 경계 및 평균 표시">생활권</button>
           <button id="toggle-rail-btn" class="tool-btn" type="button" title="용인경전철 명지대역 및 주요 시설 표시">경전철·시설</button>
           <button id="toggle-roads-btn" class="tool-btn" type="button" title="실거래 기반 47개 도로 환산월세 표시">도로시세</button>
-        </div>
-        <div class="toolbar-group">
-          <button id="toggle-comments-btn" class="tool-btn tool-btn-comments" type="button" title="실시간 자취 후기 및 커뮤니티 댓글">
-            <span>후기·댓글</span>
-            <span id="comments-count-badge" class="tool-count-badge">0</span>
-          </button>
         </div>
         <div class="toolbar-group">
           <button id="zoom-in-btn" class="tool-btn tool-icon" type="button" aria-label="확대" title="확대">+</button>
@@ -222,7 +223,7 @@
         <div class="comments-header">
           <div>
             <div class="comments-title-row">
-              <h2 class="comments-title">자취 후기 · 커뮤니티</h2>
+              <h2 class="comments-title">커뮤니티</h2>
               <span id="comments-total-count" class="comments-total-pill">0건</span>
             </div>
             <p class="comments-subtitle">건물을 태그하면 클릭 시 지도 위치와 상세 정보로 바로 이동합니다.</p>
@@ -284,6 +285,6 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script type="module" src="./js/app.js?v=15"></script>
+  <script type="module" src="./js/app.js?v=16"></script>
 </body>
 </html>

@@ -9,7 +9,7 @@ import {
   query,
   serverTimestamp,
 } from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js';
-import { getBuildingDisplayName } from './colorScale.js?v=15';
+import { getBuildingDisplayName } from './colorScale.js?v=16';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyD5Eak_-pbVftfHKcprL3iy0s9hGOIt9hE',
